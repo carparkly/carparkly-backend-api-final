@@ -1,0 +1,35 @@
+{
+  "name": "carparkly-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon",
+    "test": "jest",
+    "lint": "eslint ./src"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.0.0",
+    "mongoose": "^8.10.0",
+    "morgan": "^1.10.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^9.20.1",
+    "husky": "^9.1.7",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.9",
+    "pm2": "^5.4.3",
+    "prettier": "^3.5.0",
+    "supertest": "^7.0.0"
+  }
+}
