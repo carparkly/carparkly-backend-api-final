@@ -8,7 +8,7 @@
  */
 
 const ClientRepository = require('../repositories/ClientRepository');
-const AuthService = require('../services/AuthService');
+const AuthService = require('./AuthService');
 
 /**
  * Retrieve client profile by ID.
