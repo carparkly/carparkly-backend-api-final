@@ -3,7 +3,8 @@
  * 
  * This model represents individual parking spots in MongoDB.
  * It ensures high performance, scalability, and real-time availability tracking.
- * Features include geospatial indexing, dynamic pricing, QR code support, penalty enforcement, advanced analytics, and automated maintenance tracking.
+ * Features include geospatial indexing, dynamic pricing, QR code support, penalty enforcement, 
+ * advanced analytics, security settings, revenue tracking, and automated maintenance tracking.
  */
 
 const mongoose = require('mongoose');
@@ -12,7 +13,7 @@ const parkingSpotSchema = new mongoose.Schema(
   {
     partnerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User', // Reference to the partner who owns the parking spot
+      ref: 'Partner', // Reference to the partner who owns the parking spot
       required: true,
     },
     name: {
@@ -21,122 +22,102 @@ const parkingSpotSchema = new mongoose.Schema(
       trim: true,
     },
     location: {
-      latitude: {
-        type: Number,
-        required: true,
+      latitude: { type: Number, required: true },
+      longitude: { type: Number, required: true },
+      address: { type: String, required: [true, 'Address is required'], trim: true },
+      googleMapsLink: { type: String, default: null },
+    },
+    capacity: { type: Number, required: true, min: 1 },
+    availableSpots: { type: Number, required: true },
+    
+    pricing: {
+      hourlyRate: { type: Number, required: true, min: 0 },
+      dailyRate: { type: Number, default: 0 },
+      monthlySubscription: { type: Number, default: 0 }, // Supports subscription-based free parking
+      peakHourPricing: {
+        enabled: { type: Boolean, default: false },
+        increasePercentage: { type: Number, default: 10 },
+        startTime: { type: String, default: '07:00' },
+        endTime: { type: String, default: '20:00' },
       },
-      longitude: {
-        type: Number,
-        required: true,
+      specialEventPricing: {
+        enabled: { type: Boolean, default: false },
+        eventName: { type: String, default: null },
+        adjustedRate: { type: Number, default: 0 },
       },
-      address: {
-        type: String,
-        required: [true, 'Address is required'],
-        trim: true,
+      pushUpPrice: { type: Number, default: 0 }, // Temporary pricing increase
+    },
+    
+    liveStatus: {
+      isOccupied: { type: Boolean, default: false },
+      currentBookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking', default: null },
+      startedAt: { type: Date, default: null },
+      overstayDetected: { type: Boolean, default: false },
+    },
+    
+    securityLevel: {
+      type: String,
+      enum: ['low', 'medium', 'high'],
+      default: 'medium',
+    },
+    amenities: {
+      cctv: { type: Boolean, default: false },
+      gatedEntry: { type: Boolean, default: false },
+      onSiteStaff: { type: Boolean, default: false },
+      evChargingStations: { type: Number, default: 0 },
+      coveredParking: { type: Boolean, default: false },
+      twentyFourSevenAccess: { type: Boolean, default: false },
+    },
+    
+    operatingHours: {
+      weekdays: {
+        openTime: { type: String, default: '08:00 AM' },
+        closeTime: { type: String, default: '08:00 PM' },
+        status: { type: String, enum: ['open', 'closed'], default: 'open' },
       },
+      weekends: {
+        openTime: { type: String, default: '08:00 AM' },
+        closeTime: { type: String, default: '08:00 PM' },
+        status: { type: String, enum: ['open', 'closed'], default: 'open' },
+      },
+      holidays: [
+        {
+          date: { type: Date, required: true },
+          reason: { type: String, required: true },
+          status: { type: String, enum: ['open', 'closed'], default: 'closed' },
+        },
+      ],
     },
-    capacity: {
-      type: Number,
-      required: true,
-      min: 1, // A parking spot should at least have one available space
+    
+    accessInstructions: {
+      parkingRules: { type: String, default: '' },
+      accessInstructions: { type: String, default: '' },
+      securityNotes: { type: String, default: '' },
+      entryInstructions: { type: String, default: '' },
+      exitInstructions: { type: String, default: '' },
     },
-    availableSpots: {
-      type: Number,
-      required: true,
-    },
-    hourlyRate: {
-      type: Number,
-      required: true,
-      min: 0, // No negative pricing
-    },
-    isAvailable: {
-      type: Boolean,
-      default: true,
-    },
-    rules: {
-      type: [String],
-      default: [],
-    },
-    qrCode: {
-      type: String, // QR code for payment and check-in validation
-    },
-    dynamicPricing: {
-      type: Boolean,
-      default: false,
-    },
+    
+    qrCode: { type: String, default: null }, // QR code for check-in validation
     penaltyRules: [
       {
         violation: { type: String, required: true },
         fineAmount: { type: Number, required: true, min: 0 },
       },
     ],
-    amenities: {
-      type: [String], // List of amenities available (e.g., EV charging, security, covered parking)
-      default: [],
-    },
-    securityLevel: {
-      type: String,
-      enum: ['low', 'medium', 'high'],
-      default: 'medium',
-    },
-    peakHours: {
-      start: {
-        type: String,
-        required: false,
-      },
-      end: {
-        type: String,
-        required: false,
-      },
-    },
-    bookingHistory: [
-      {
-        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        bookedAt: { type: Date, default: Date.now },
-        duration: { type: Number, required: true },
-      },
-    ],
-    rating: {
-      type: Number,
-      min: 0,
-      max: 5,
-      default: 0,
-    },
-    reviews: [
-      {
-        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        review: { type: String, trim: true },
-        rating: { type: Number, min: 0, max: 5 },
-        createdAt: { type: Date, default: Date.now },
-      },
-    ],
-    averageOccupancyRate: {
-      type: Number,
-      min: 0,
-      max: 100,
-      default: 0, // Percentage-based occupancy rate
-    },
-    revenueGenerated: {
-      type: Number,
-      default: 0, // Tracks total earnings from this parking spot
-    },
-    lastMaintenanceDate: {
-      type: Date,
-    },
-    isUnderMaintenance: {
-      type: Boolean,
-      default: false,
-    },
-    maintenanceLogs: [
-      {
-        performedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        description: { type: String, required: true },
-        maintenanceDate: { type: Date, default: Date.now },
-      },
-    ],
-    automaticAvailabilityReset: {
-      type: Boolean,
-      default: false, // If enabled, automatically resets availability based on occupancy rate
+    
+    revenueGenerated: { type: Number, default: 0 },
+    
+    maintenance: {
+      lastMaintenanceDate: { type: Date, default: null },
+      isUnderMaintenance: { type: Boolean, default: false },
+      maintenanceLogs: [
+        {
+          performedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+          description: { type: String, required: true },
+          maintenanceDate: { type: Date, default: Date.now },
+        },
+      ],
+      automaticAvailabilityReset: { type: Boolean, default: false },
     },
   },
   {
