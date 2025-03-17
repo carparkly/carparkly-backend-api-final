@@ -2,7 +2,8 @@
  * Partner Model - Mongoose Schema
  * 
  * This model represents partners (organizations and individuals) leasing their parking spaces.
- * It ensures structured partner management, account verification, financial tracking, differentiated data storage for individuals and companies, future scalability, parking analytics, and timestamps.
+ * It ensures structured partner management, account verification, financial tracking, business legal compliance,
+ * flexible pricing mechanisms, parking analytics, and real-time earnings tracking.
  */
 
 const mongoose = require('mongoose');
@@ -27,6 +28,15 @@ const partnerSchema = new mongoose.Schema(
     organizationInfo: {
       organizationName: { type: String, trim: true },
       registrationNumber: { type: String, trim: true, unique: true, sparse: true },
+      businessType: { type: String, enum: ['Private Limited', 'Nonprofit', 'Sole Proprietorship'], default: 'Private Limited' },
+      gstRegistered: { type: Boolean, default: false }, // GST registration flag
+      companyAddress: {
+        street: { type: String, trim: true },
+        city: { type: String, trim: true },
+        state: { type: String, trim: true },
+        zipCode: { type: String, trim: true },
+        country: { type: String, trim: true },
+      },
       contactPerson: { type: String, trim: true },
       businessLicense: { type: String, default: null },
     },
@@ -42,39 +52,56 @@ const partnerSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    address: {
-      street: { type: String, trim: true },
-      city: { type: String, trim: true },
-      state: { type: String, trim: true },
-      zipCode: { type: String, trim: true },
-      country: { type: String, trim: true },
-    },
     parkingSpots: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'ParkingSpot',
       },
     ],
-    analytics: {
-      totalBookings: { type: Number, default: 0 },
-      averageOccupancyRate: { type: Number, default: 0 },
-      customerFeedbackScore: { type: Number, min: 0, max: 5, default: 0 },
+    parkingDetails: {
+      totalParkingSpaces: { type: Number, default: 0 },
+      features: {
+        cctv: { type: Boolean, default: false },
+        gatedEntry: { type: Boolean, default: false },
+        onSiteStaff: { type: Boolean, default: false },
+        evChargingStations: { type: Number, default: 0 },
+        coveredParking: { type: Boolean, default: false },
+        twentyFourSevenAccess: { type: Boolean, default: false },
+      }
+    },
+    pricing: {
+      hourlyRate: { type: Number, default: 0 },
+      dailyRate: { type: Number, default: 0 },
+      monthlySubscription: { type: Number, default: 0 },
+      peakHourPricing: { 
+        enabled: { type: Boolean, default: false }, 
+        increasePercentage: { type: Number, default: 10 }, 
+        startTime: { type: String, default: '07:00' }, 
+        endTime: { type: String, default: '20:00' }, 
+      },
+      specialEventPricing: {
+        enabled: { type: Boolean, default: false },
+        eventName: { type: String, default: null },
+        adjustedRate: { type: Number, default: 0 },
+      },
     },
     financials: {
-      totalEarnings: {
-        type: Number,
-        default: 0, // Tracks total revenue from leasing parking spaces
-      },
-      lastPayout: {
-        type: Date,
-        default: null, // Last payout date
-      },
-      payoutMethod: {
-        type: String,
-        enum: ['bank_transfer', 'paypal', 'crypto'],
-        default: 'bank_transfer',
-      },
+      totalEarnings: { type: Number, default: 0 },
+      pendingPayouts: { type: Number, default: 0 },
+      lastPayout: { type: Date, default: null },
+      payoutMethod: { type: String, enum: ['bank_transfer', 'paypal', 'crypto'], default: 'bank_transfer' },
       taxId: { type: String, trim: true, unique: true, sparse: true },
+      bankDetails: {
+        accountNumber: { type: String, trim: true },
+        bankName: { type: String, trim: true },
+        swiftCode: { type: String, trim: true },
+        bsbCode: { type: String, trim: true },
+      },
+    },
+    subscription: {
+      isSubscribed: { type: Boolean, default: false },
+      plan: { type: String, enum: ['Free', 'Standard', 'Premium'], default: 'Free' },
+      nextBillingDate: { type: Date, default: null },
     },
     accountVerified: {
       type: Boolean,
